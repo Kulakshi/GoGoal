@@ -542,6 +542,7 @@ public class ChatApplication extends Application implements Observable {
 	 * the model has changed and observers need to synchronize with it.
 	 */
 	public static final String HISTORY_CHANGED_EVENT = "HISTORY_CHANGED_EVENT";
+	public static final String GAME_STARTED_EVENT = "GAME_STARTED_EVENT";
 	
 	/**
 	 * Whenever a message comes in from the AllJoyn Service over its channel
@@ -585,10 +586,14 @@ public class ChatApplication extends Application implements Observable {
 		}
         String x=message[0];
         String y=message[1];
+        String scnWidth=message[2];
+        String scnHeight=message[3];
+        String state=message[4];
+        
 		//DateFormat dateFormat = new SimpleDateFormat("HH:mm");
         //Date date = new Date();
 		//mHistory.add("[" + dateFormat.format(date) + "]|" + nickname + "|" + message);
-		String msg[]={nickname,x,y};
+		String msg[]={nickname,x,y,scnWidth,scnHeight,state};
 		mHistory.add(msg);
 		
 		notifyObservers(HISTORY_CHANGED_EVENT);

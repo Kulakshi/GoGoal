@@ -39,15 +39,22 @@
 
         <Button
             android:id="@+id/useJoin"
-            android:layout_width="120dp"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
             android:text="Join Channel" />
 
         <Button
             android:id="@+id/useLeave"
-            android:layout_width="120dp"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
             android:text="Leave Channel" />
+
+        <Button
+            android:id="@+id/useStart"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Start Game" />
+
     </LinearLayout>
 
   <!--   <EditText

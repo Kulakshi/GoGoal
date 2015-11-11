@@ -23,67 +23,46 @@ import android.util.Log;
 
 public class MySensorManager extends Thread implements SensorEventListener
 {
-
+	int currentX,currentY;
+	String user;
+	String currentMessage[];
 	
-	private static final String TAG = "chat.Sensor Manager";
+	int x,y,z;
+	int mScrWidth, mScrHeight;
+	android.graphics.PointF mBallPos, mBallSpd;
 	
-    
-    public static int x;
-    public static int y;	
-    private SensorManager sensorManager = null;
-
-   public MySensorManager(Context context) {
-
-    	// Get a reference to a SensorManager
-    	SensorManager sensorManager = (SensorManager) context.getSystemService(context.SENSOR_SERVICE); 
-    	//	
+	private ChatApplication mChatApplication = null;
+	
+	
+	
+	public MySensorManager() {
+		mChatApplication=new ChatApplication();
 	}
-    
-     
+
 	@Override
-	public void onAccuracyChanged(Sensor arg0, int arg1) {
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	 public void onSensorChanged(SensorEvent sensorEvent)
-    {
-        {
-            if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                // the values you were calculating originally here were over 10000!
-                x = (int) Math.pow(sensorEvent.values[0], 2); 
-                y = (int) Math.pow(sensorEvent.values[1], 2);
-                //z = (int) Math.pow(sensorEvent.values[3], 2);
+	public void onSensorChanged(SensorEvent sensorEvent) {
 
-            }
-
-            if (sensorEvent.sensor.getType() == Sensor.TYPE_ORIENTATION) {
-
-            }
-        }
-    }
-	
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		super.run();
-		UseActivity ua=new UseActivity();
-		ua.x=x;
-		ua.y=y;
+	 	
+	       //set ball speed based on phone tilt (ignore Z axis)
+	            mBallSpd.x = -sensorEvent.values[0];
+	            mBallSpd.y = sensorEvent.values[1];
+	            
+	            x +=mBallSpd.x*10;
+	            y +=mBallSpd.y*10;
+	            
+	            String []message={x+"",y+""};
+	            mChatApplication.newLocalUserMessage(message);
+	           
 		
-		try {
-			sleep(50);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
-	
-	
-	
 
-
+	
  
 	
 	
