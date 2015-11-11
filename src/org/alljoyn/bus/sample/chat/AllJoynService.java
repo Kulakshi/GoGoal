@@ -1158,7 +1158,7 @@ public class AllJoynService extends Service implements Observer {
     private void doSendMessages() {
         Log.i(TAG, "doSendMessages()");
 
-        String message;
+        String message[];
         while ((message = mChatApplication.getOutboundItem()) != null) {
             Log.i(TAG, "doSendMessages(): sending message \"" + message + "\"");
             /*
@@ -1194,7 +1194,7 @@ public class AllJoynService extends Service implements Observer {
          * method is only used as a signal emitter, it will never be called
          * directly.
 	     */
-    	public void Chat(String str) throws BusException {                                                                                              
+    	public void Chat(String str[]) throws BusException {                                                                                              
         }     
     }
 
@@ -1214,7 +1214,7 @@ public class AllJoynService extends Service implements Observer {
      * handler names.
      */
     @BusSignalHandler(iface = "org.alljoyn.bus.samples.chat", signal = "Chat")
-    public void Chat(String string) {
+    public void Chat(String string[]) {
     	
         /*
     	 * See the long comment in doJoinSession() for more explanation of

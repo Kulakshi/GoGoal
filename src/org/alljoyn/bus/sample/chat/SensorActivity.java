@@ -27,7 +27,7 @@ public class SensorActivity extends Activity implements SensorEventListener
 	
 	private static final String TAG = "chat.Sensor Manager";
     /** Called when the activity is first created. */
-    CustomDrawableView mCustomDrawableView = null;
+   // CustomDrawableView mCustomDrawableView = null;
     ShapeDrawable mDrawable = new ShapeDrawable();
     public static int x;
     public static int y;
@@ -37,7 +37,7 @@ public class SensorActivity extends Activity implements SensorEventListener
     private SensorManager sensorManager = null;
 
     /** Called when the activity is first created. */
-    @Override
+ /*   @Override
     public void onCreate(Bundle savedInstanceState)
     {
 
@@ -53,7 +53,7 @@ public class SensorActivity extends Activity implements SensorEventListener
     	
 
     }
-
+*/
     // This method will update the UI on new sensor events
     public void onSensorChanged(SensorEvent sensorEvent)
     {
@@ -121,7 +121,7 @@ public class SensorActivity extends Activity implements SensorEventListener
     	
     }
     
-    
+  /*  
 
     public class CustomDrawableView extends View
     {
@@ -150,7 +150,7 @@ public class SensorActivity extends Activity implements SensorEventListener
             
             /*
              * when the object gets to corners of the screen display it from opposite side
-             */
+             *//*
             if(x>=maxX){
             	x=x-maxX;
             }
@@ -174,4 +174,6 @@ public class SensorActivity extends Activity implements SensorEventListener
         
        
     }
+
+*/
 }
