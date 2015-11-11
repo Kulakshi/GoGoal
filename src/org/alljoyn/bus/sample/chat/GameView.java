@@ -2,6 +2,7 @@ package org.alljoyn.bus.sample.chat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import android.app.Activity;
 import android.content.Context;
@@ -9,6 +10,7 @@ import android.database.MergeCursor;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.hardware.Sensor;
@@ -216,10 +218,10 @@ public class GameView extends Activity implements Observer{
 		        if(justChanged){
 		        	mChatApplication.newLocalUserMessage(message);
 		        }
-		        
 			}
-		
       }
+      
+      
 	
 class GameView2 extends SurfaceView implements Runnable{
 
@@ -238,58 +240,214 @@ class GameView2 extends SurfaceView implements Runnable{
 	@Override
 	public void run() {
 		
+		//creating the maze
+		
+		//no of cols and rows
+		int cellW=60;
+		int cellH=60;
+		int cols=(mScrWidth/cellW)+2;
+		int rows=(mScrHeight/cellH)+2;
+		
+		//matrix
+		Rect grid[][]=new Rect[rows][cols];
+		int type[][]=new int[rows][cols];
+		Paint pCell[][]=new Paint[rows][cols];
+		
+		//fill cell types of the grid
+		Random r=new Random();
+
+		
+		for(int i=0;i<rows;i++){
+			int y=i*cellH;
+			for(int j=0;j<cols;j++){
+				type[i][j]=r.nextInt(20);
+				Log.i(TAG,"Cell   "+i+"  "+j);
+				pCell[i][j]=new Paint();
+				if(type[i][j]<=8){
+					pCell[i][j].setColor(Color.YELLOW);
+				}else{
+					pCell[i][j].setColor(Color.BLACK);
+				}
+				
+				//set x and y of left corner
+				int x=j*cellW;
+				grid[i][j]=new Rect(x,y,x+cellW,y+cellH);
+				
+				//set default ball position black
+				if((mScrWidth/2)-200< grid[i][j].left & (mScrWidth/2)+200 > grid[i][j].right){
+					if((mScrHeight/2)-200< grid[i][j].top & (mScrHeight/2)+200 > grid[i][j].bottom){
+						pCell[i][j].setColor(Color.BLACK);
+					}
+				}
+				if(i==0 | j==0 | i==rows-1 | j== cols-1){
+					pCell[i][j].setColor(Color.BLACK);
+				}
+				
+			}
+		}
+		
+		
+		//setting the goal
+		Rect goal=new Rect(r.nextInt(rows-3), r.nextInt(cols-3), r.nextInt(rows-3)+120, r.nextInt(rows-3)+120);
+		Paint pGoal=new Paint();
+		pGoal.setColor(Color.GREEN);
+		
+	
 		ShapeDrawable mDrawable = new ShapeDrawable(new OvalShape());
         ShapeDrawable mRemoteDrawable = new ShapeDrawable(new OvalShape());
-               
+        
+        mDrawable.setBounds(localX, localY, localX+50, localY+50);
+        mRemoteDrawable.setBounds(localX2,localY2, localX2+40, localY2+40);
+        
+        int lastBlackCell[]=new int[2];
+        int lastBlackCell2[]=new int[2];
+        boolean won=false;
 
 		while(isItOkay==true){
+			
+			
 			while(!sHolder.getSurface().isValid()){
 				continue;
 			}
+			
+			
 			Canvas canvas=sHolder.lockCanvas();
 			//background
-			canvas.drawARGB(255,255,255,255);
+			canvas.drawARGB(255,10,10,10);
 			
-		synchronized (canvas) {
-			//update current x and y
+	
 			
-			//readMessage();
-			sendMessage();
-		
-		
+			synchronized (canvas) {
+				//update current x and y
+				sendMessage();
 				
+				
+				boolean blocked=false;
+				
+			
 				if(ownership1){
+					
 					mDrawable.getPaint().setColor(Color.RED);
-					mDrawable.setBounds(localX, localY, localX+50, localY+50);
+					
+					
+					int currentCellX=(localX/cellW);
+					int currentCellY=(localY/cellH);
+					int currentCellX2=((localX+50)/cellW);
+					int currentCellY2=((localY+50)/cellH);
+				
+					
+					
+					//Log.i(TAG, "####CCCC"+pCell[currentCellY][currentCellX].getColor()+"  "+currentCellX2+"  "+currentCellY2);	
+					
+					
+					if(localX+50>=goal.left & localX<=goal.right & localY+50>=goal.top & localY <= goal.bottom){
+						won=true;						
+					}else{
+						
+					
+					
+					
+						if((pCell[currentCellY][currentCellX].getColor()==Color.BLACK) &
+								(pCell[currentCellY2][currentCellX2].getColor()==Color.BLACK) &
+								(pCell[currentCellY][currentCellX2].getColor()==Color.BLACK) &
+								(pCell[currentCellY2][currentCellX].getColor()==Color.BLACK) 
+								){
+							lastBlackCell[0]=localX;
+							lastBlackCell[1]=localY;
+							mDrawable.setBounds(localX, localY, localX+50, localY+50);
+							Log.i(TAG, "In a black cell");
+						}else{
+							localX=lastBlackCell[0];
+							localY=lastBlackCell[1];
+							Log.i(TAG, "In a yellow cell");
+						}
+						
+					
+					
+					}	
+					
+					//mDrawable.setBounds(currentCellX*60, currentCellY*60, (currentCellX*60)+50, (currentCellY*60)+50);
 					Log.i(TAG, gm2+"STATE 1 - BIG RED");
-				}else{
-					mDrawable.getPaint().setColor(Color.GRAY);
-					mDrawable.setBounds(remoteX2, remoteY2, remoteX2+50, remoteY2+50);
-					Log.i(TAG, "STATE 3 - BIG GRAY");
 				}
 				
 				if(ownership2){
-					mRemoteDrawable.getPaint().setColor(Color.BLUE);
-					mRemoteDrawable.setBounds(localX2,localY2, localX2+40, localY2+40);
+					
+					if(localX+50>=goal.left & localX<=goal.right & localY+50>=goal.top & localY <= goal.bottom){
+						won=true;						
+					}else{
+						
+
+						int currentCellX=(localX2/cellW);
+						int currentCellY=(localY2/cellH);
+						int currentCellX2=((localX2+40)/cellW);
+						int currentCellY2=((localY2+40)/cellH);
+						
+						if((pCell[currentCellY][currentCellX].getColor()==Color.BLACK) &
+								(pCell[currentCellY2][currentCellX2].getColor()==Color.BLACK) &
+								(pCell[currentCellY][currentCellX2].getColor()==Color.BLACK) &
+								(pCell[currentCellY2][currentCellX].getColor()==Color.BLACK) 
+								){
+							lastBlackCell2[0]=localX2;
+							lastBlackCell2[1]=localY2;
+							mRemoteDrawable.setBounds(localX2, localY2, localX2+50, localY2+50);
+							
+						}else{
+							localX2=lastBlackCell2[0];
+							localY2=lastBlackCell2[1];
+							
+						}
+					
+					//mRemoteDrawable.getPaint().setColor(Color.BLUE);
+					//mRemoteDrawable.setBounds(localX2,localY2, localX2+40, localY2+40);
 					Log.i(TAG, "STATE 2 - SMALL BLUE");
-				}else{
-					mRemoteDrawable.getPaint().setColor(Color.GRAY);
-					mRemoteDrawable.setBounds(remoteX, remoteY, remoteX+40, remoteY+40);
-					Log.i(TAG, "STATE 4");
+				}
 				}
 				
 	            
 			
 		}	
 			
+		//draw black blocks
+		for(int i=0;i<rows;i++){//8
+			for(int j=0;j<cols;j++){//5
+				if(pCell[i][j].getColor()==Color.BLACK){
+					canvas.drawRect(grid[i][j], pCell[i][j]);
+				}
+				
+				//Log.i(TAG, "INFO "+i+"  "+j+"  "+pCell[i][j].getColor());
+			}
+		}
+		
+		//draw circles
+		 mRemoteDrawable.draw(canvas);
+		 mDrawable.draw(canvas);
+
+        //draw yellow blocks
+        for(int i=0;i<rows;i++){//8
+    			for(int j=0;j<cols;j++){//5
+    				if(pCell[i][j].getColor()==Color.YELLOW){
+    					canvas.drawRect(grid[i][j], pCell[i][j]);
+    				}
+    				
+    				//Log.i(TAG, "INFO "+i+"  "+j+"  "+pCell[i][j].getColor());
+    			}
+    	} 
+        
+        canvas.drawRect(goal, pGoal);	
+      //if it's a black one color it
+	/*	if(pCell[currentCellX][currentCellY].getColor()==Color.BLACK){
+			pCell[currentCellX][currentCellY].setColor(Color.MAGENTA);
+			canvas.drawRect(grid[currentCellX][currentCellY], pCell[currentCellX][currentCellY]);
+		}*/
+        if(won){
+			Paint p=new Paint();
+			p.setColor(Color.MAGENTA);
+			p.setTextSize(60);
+			canvas.drawText("YOU WON!!!", 40, 40, p);
+			Log.i(TAG, "####CCCC");	
 			
-			//draw circles
-			mDrawable.draw(canvas);
-            mRemoteDrawable.draw(canvas);
-            
-	       // canvas.drawText(user+"X : "+ currentX +"\n Y : "+ currentY +"/n Z : "+ z, mScrWidth/2, mScrHeight/2, pLocal); 
-			
-			sHolder.unlockCanvasAndPost(canvas);
+		}
+		sHolder.unlockCanvasAndPost(canvas);
 			
 			
 		}
@@ -318,6 +476,10 @@ class GameView2 extends SurfaceView implements Runnable{
 	}
 
 
+	private void close(){
+		isItOkay=false;
+		
+	}
 	
 	
 	
@@ -394,18 +556,6 @@ private void readMessage(){
 			mRemoteScrHeight=srnH;
 			
 			
-			if(state==1){
-				
-				remoteX=currentX;
-				remoteY=currentY;
-				
-		   }	
-			if(state==2){
-				
-				remoteX2=currentX;
-				remoteY2=currentY;
-				
-		        }
 			if(state==3){
 				ownership2=true;
 				localX2=currentX;
@@ -458,7 +608,68 @@ private Handler mHandler = new Handler() {
 
 
 
+/*
+ * 					for(int i=0;i<rows;i++){
+						for(int j=0;j<cols;j++){
+							
+							if(pCell[i][j].getColor()==Color.BLACK){
+								if(localX<=grid[i][j].left || localX+50>=grid[i][j].right || localY<=grid[i][j].top || localY+50 >= grid[i][j].bottom){
+									
+								}
+							}
+							
+						}
+					}
+					
+				////////////////////////////////////////////////////////////////	
+					
+				
+				currentCellX=(localX/cellW);
+				currentCellY=(localY/cellH);
+					
+					if(pCell[currentCellX][currentCellY].getColor()==Color.BLACK){
+						lastBlackCell[0]=localX;
+						lastBlackCell[1]=localY;
+						mDrawable.setBounds(localX, localY, localX+50, localY+50);
+						
+					}else{
+						localX=lastBlackCell[0];
+						localY=lastBlackCell[1];
+					}
+					
+					
+					
+			////////////////////////////////////////////////		
+					
+					for(int i=0;i<rows;i++){
+						for(int j=0;j<cols;j++){
+							
+							if(pCell[i][j].getColor()==Color.YELLOW){
+								if(localX+50>=grid[i][j].left || localX<=grid[i][j].right || localY+50>=grid[i][j].top || localY <= grid[i][j].bottom){
+									localX=lastBlackCell[0];
+									localY=lastBlackCell[1];
+									mDrawable.setBounds(localX, localY, localX+50, localY+50);
+									blocked=true;
+									break;
+								}
+							}
+							
+						}
+					}
 
+					if(!blocked){
+						lastBlackCell[0]=localX;
+						lastBlackCell[1]=localY;
+						mDrawable.setBounds(localX, localY, localX+50, localY+50);
+					}
+					
+					
+					
+					
+					
+					
+					
+ */
 
 
 
