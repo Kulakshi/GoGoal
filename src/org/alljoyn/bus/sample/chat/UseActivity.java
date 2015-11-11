@@ -28,6 +28,10 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 import android.view.KeyEvent;
 import android.view.View;
@@ -47,7 +51,27 @@ public class UseActivity extends Activity implements Observer {
     private static final String TAG = "chat.UseActivity";
     
     ///
-    Context context=this;
+    //Context context=this;
+    int x,y;
+    
+    
+  //Sensor
+    SensorManager sensorManager;
+    SensorEventListener sensorListener = new SensorEventListener() {
+     
+        public void onSensorChanged(SensorEvent sensorEvent) {
+          //pass the values to view for display
+        	x = (int) Math.pow(sensorEvent.values[0], 2); 
+            y = (int) Math.pow(sensorEvent.values[1], 2);
+        }
+
+		@Override
+		public void onAccuracyChanged(Sensor arg0, int arg1) {
+			// TODO Auto-generated method stub
+			
+		}
+      };
+    
     
     public void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate()");
@@ -64,19 +88,30 @@ public class UseActivity extends Activity implements Observer {
                 if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_UP) {
                 	String message = view.getText().toString();
                     Log.i(TAG, "useMessage.onEditorAction(): got message " + message + ")");
-                    //message passes to the interface                   
-                    
+                    //message passes to the interface         
     	            //mChatApplication.newLocalUserMessage(message+"my message here");
     	           
                     Log.i(TAG, "before calling sensor*****");
-                    MySensorManager sm=new MySensorManager(context);
-                    mChatApplication.newLocalUserMessage(sm.onCall());
-                
+                    
+                    sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+                    sensorManager.registerListener(sensorListener,
+                                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                                SensorManager.SENSOR_DELAY_FASTEST); 
+                    
+                   // SensorActivity sm=new SensorActivity();
+                    mChatApplication.newLocalUserMessage(" X "+x+"  Y "+y);
+                                    
     	            view.setText("");
                 }
                 return true;
             }
         });
+        
+        
+        
+          
+          
+          
                 
         mJoinButton = (Button)findViewById(R.id.useJoin);
         mJoinButton.setOnClickListener(new View.OnClickListener() {
@@ -96,7 +131,7 @@ public class UseActivity extends Activity implements Observer {
         mChannelStatus = (TextView)findViewById(R.id.useChannelStatus);
         
         /*
-         * Keep a pointer to the Android Appliation class around.  We use this
+         * Keep a pointer to the Android Application class around.  We use this
          * as the Model for our MVC-based application.    Whenever we are started
          * we need to "check in" with the application so it can ensure that our
          * required services are running.
@@ -275,4 +310,5 @@ public class UseActivity extends Activity implements Observer {
     private TextView mChannelName;
       
     private TextView mChannelStatus;
+
 }

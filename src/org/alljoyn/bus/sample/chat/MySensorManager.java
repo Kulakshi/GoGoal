@@ -5,82 +5,88 @@ package org.alljoyn.bus.sample.chat;
 
 
 
+//import org.alljoyn.bus.sample.chat.SensorActivity.CustomDrawableView;
+
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.drawable.ShapeDrawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
+import android.util.DisplayMetrics;
 import android.util.Log;
 
 
-public class MySensorManager 
+public class MySensorManager extends Thread implements SensorEventListener
 {
- 
-	private static final String TAG = "chat.MySensorManager";
-	final float[] mValuesMagnet      = new float[3];
-    final float[] mValuesAccel       = new float[3];
-    final float[] mValuesOrientation = new float[3];
-    final float[] mRotationMatrix    = new float[9];
-    Context context;
+
+	
+	private static final String TAG = "chat.Sensor Manager";
+	
     
-     MySensorManager(Context context)
+    public static int x;
+    public static int y;	
+    private SensorManager sensorManager = null;
+
+   public MySensorManager(Context context) {
+
+    	// Get a reference to a SensorManager
+    	SensorManager sensorManager = (SensorManager) context.getSystemService(context.SENSOR_SERVICE); 
+    	//	
+	}
+    
+     
+	@Override
+	public void onAccuracyChanged(Sensor arg0, int arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	 public void onSensorChanged(SensorEvent sensorEvent)
     {
-        this.context = context;
-    	SensorManager sensorManager = (SensorManager) context.getSystemService(context.SENSOR_SERVICE);        
+        {
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                // the values you were calculating originally here were over 10000!
+                x = (int) Math.pow(sensorEvent.values[0], 2); 
+                y = (int) Math.pow(sensorEvent.values[1], 2);
+                //z = (int) Math.pow(sensorEvent.values[3], 2);
 
-    	Log.i(TAG, "in Sensor manager class");
-
-        final SensorEventListener mEventListener = new SensorEventListener() {
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
             }
 
-            public void onSensorChanged(SensorEvent event) {
-                // Handle the events for which we registered
-                switch (event.sensor.getType()) {
-                    case Sensor.TYPE_ACCELEROMETER:
-                        System.arraycopy(event.values, 0, mValuesAccel, 0, 3);
-                        break;
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_ORIENTATION) {
 
-                    case Sensor.TYPE_ORIENTATION:
-                    	System.arraycopy(event.values, 0, mValuesOrientation, 0, 3);
-                    	break;
-                    	
-                    case Sensor.TYPE_MAGNETIC_FIELD:
-                        System.arraycopy(event.values, 0, mValuesMagnet, 0, 3);
-                        break;
-                }
-            };
-        };
-        
-        
-     // You have set the event lisetner up, now just need to register this with the
-        // sensor manager along with the sensor wanted.
-        setListners(sensorManager, mEventListener);
-        
-    } 
-     
-     
-     
-  // Register the event listener and sensor type.
-     public void setListners(SensorManager sensorManager, SensorEventListener mEventListener)
-     {
-         sensorManager.registerListener(mEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), 
-                 SensorManager.SENSOR_DELAY_NORMAL);
-         sensorManager.registerListener(mEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), 
-                 SensorManager.SENSOR_DELAY_NORMAL);
-     }
-     
-     
-     public String onCall()
-     {
-        	  SensorManager.getRotationMatrix(mRotationMatrix, null, mValuesAccel, mValuesMagnet);
-              SensorManager.getOrientation(mRotationMatrix, mValuesOrientation);
-              final CharSequence test;
-              test = "results: " + mValuesOrientation[0] +" "+mValuesOrientation[1]+ " "+ mValuesOrientation[2];
-              return test+"";
-     }
-     
+            }
+        }
+    }
+	
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		super.run();
+		UseActivity ua=new UseActivity();
+		ua.x=x;
+		ua.y=y;
+		
+		try {
+			sleep(50);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
 
-    
+
+ 
+	
+	
+	
+	
 }

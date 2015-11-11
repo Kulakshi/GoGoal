@@ -17,12 +17,15 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
 
 public class SensorActivity extends Activity implements SensorEventListener
 {
+	
+	private static final String TAG = "chat.Sensor Manager";
     /** Called when the activity is first created. */
     CustomDrawableView mCustomDrawableView = null;
     ShapeDrawable mDrawable = new ShapeDrawable();
@@ -58,6 +61,7 @@ public class SensorActivity extends Activity implements SensorEventListener
             if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 // the values you were calculating originally here were over 10000!
                 x = (int) Math.pow(sensorEvent.values[0], 2); 
+                Log.i(TAG, "XXXXXXXXXXXXXXXXXXXXXXXX"+x);
                 y = (int) Math.pow(sensorEvent.values[1], 2);
                 //z = (int) Math.pow(sensorEvent.values[3], 2);
 
@@ -95,11 +99,34 @@ public class SensorActivity extends Activity implements SensorEventListener
         sensorManager.unregisterListener(this);
         super.onStop();
     }
+    
+    
+    /*
+     * updates x and y when object goes into corners
+     */
+    public void setCoordinates(){
+    	Display mdisp = getWindowManager().getDefaultDisplay();
+        int maxX= mdisp.getWidth()/25; //a near location for max X for my device 
+        int maxY= mdisp.getHeight()/10;
+        
+        /*
+         * when the object gets to corners of the screen display it from opposite side
+         */
+        if(x>=maxX){
+        	x=x-maxX;
+        }
+        if(y>=maxY){
+        	y=y-maxY;
+        }
+    	
+    }
+    
+    
 
     public class CustomDrawableView extends View
     {
-        static final int width = 50;
-        static final int height = 50;
+        static final int width = 10;
+        static final int height = 10;
 
         public CustomDrawableView(Context context)
         {
@@ -109,16 +136,40 @@ public class SensorActivity extends Activity implements SensorEventListener
             mDrawable.getPaint().setColor(0xff74AC23);
             mDrawable.setBounds(0, 0, x + width, y + height);
         }
+        
+      
 
         protected void onDraw(Canvas canvas)
         {
-        	canvas.scale(2, 4);
-            RectF oval = new RectF(SensorActivity.x, SensorActivity.y, SensorActivity.x +width,SensorActivity.y +height); // set bounds of rectangle
+        	
+        	
+        	//get width and height of the screen
+        	Display mdisp = getWindowManager().getDefaultDisplay();
+            int maxX= mdisp.getWidth()/25; //a near location for max X for my device 
+            int maxY= mdisp.getHeight()/10;
+            
+            /*
+             * when the object gets to corners of the screen display it from opposite side
+             */
+            if(x>=maxX){
+            	x=x-maxX;
+            }
+            if(y>=maxY){
+            	y=y-maxY;
+            }
+           
+            
+        	canvas.scale(6, 8);
+            RectF oval = new RectF(x, y, x +width,y +height); // set bounds of rectangle
+            RectF text=new RectF(maxX-10,maxY-10,maxX,maxY);
             Paint p = new Paint(); // set some paint options
             p.setColor(Color.BLUE);
             canvas.drawOval(oval, p);
+            canvas.drawText("X : "+ x +" Y : "+ y, maxX, maxY, p);
             invalidate();
+            
         }
+        
         
         
        
