@@ -1,1 +1,1 @@
-winning stratergy is made
+complete version with winning strategy and other resources

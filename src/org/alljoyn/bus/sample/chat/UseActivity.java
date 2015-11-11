@@ -64,7 +64,6 @@ public class UseActivity extends Activity implements Observer {
         
       //graphics
         
-        useFrame=(FrameLayout) findViewById(R.id.useFrame);
         
         
         

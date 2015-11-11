@@ -6,11 +6,19 @@ import java.util.Random;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.database.MergeCursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Paint.Align;
+import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.hardware.Sensor;
@@ -40,6 +48,10 @@ public class GameView extends Activity implements Observer{
 	int currentX,currentY;
 	String user;
 	String currentMessage[]=new String[6];
+	int score;
+	int lifeTime;
+	SharedPreferences sharedPref;
+	Intent scoreIntent;
 
 
 	int localX, localY, remoteX, remoteY, localX2, localY2, remoteX2, remoteY2;
@@ -57,6 +69,10 @@ public class GameView extends Activity implements Observer{
     private static final String TAG = "chat.GameView";
 	@Override
 	protected void onCreate(android.os.Bundle savedInstanceState) {
+		
+		
+		
+		
     	Log.i(TAG, "onCreate()");
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE); //hide title bar
@@ -80,6 +96,9 @@ public class GameView extends Activity implements Observer{
 		mBallSpd.x = 0;
 		mBallSpd.y = 0; 
 		
+		score=0;
+		lifeTime=100;
+		
 		user="Me";
 		currentMessage[0]=user;
 		currentMessage[1]=mBallSpd.x+"";
@@ -91,6 +110,12 @@ public class GameView extends Activity implements Observer{
 		
 		ownership1=true;
 		ownership2=false;
+		
+		
+		
+		
+		
+		
 		
 		
 		//register sensor
@@ -107,6 +132,8 @@ public class GameView extends Activity implements Observer{
         Log.i(TAG, "after getting chat app");
         mChatApplication.addObserver(this);
         Log.i(TAG, "after adding observer");
+        
+        scoreIntent = new Intent(GameView.this, ScoreView.class);
         
 	}
 
@@ -142,32 +169,32 @@ public class GameView extends Activity implements Observer{
 			
 			if(ownership1){
 				
-				localX += localXspd;
-				localY += localYspd;
+				localX += localXspd * 2;
+				localY += localYspd * 2;
 				int state=1;
 				boolean justChanged=false;
 				
 				//if ball goes off from local screen, reposition to opposite side of screen
 		        if (localX > mScrWidth){
-		        	localX=0;
+		        	localX=5;
 		        	ownership1= false;
 		        	justChanged=true;
 		        	state=3;
 		        }
 		        if (localY > mScrHeight){
-		        	localY=0;
+		        	localY=5;
 		        	ownership1= false;
 		        	justChanged=true;
 		        	state=3;
 		        }
 		        if (localX < 0){
-		        	localX=mRemoteScrWidth;
+		        	localX=mRemoteScrWidth-40;
 		        	ownership1= false;
 		        	justChanged=true;
 		        	state=3;
 		        }
 		        if (localY < 0){
-		        	localY=mRemoteScrHeight;
+		        	localY=mRemoteScrHeight-40;
 		        	ownership1= false;
 		        	justChanged=true;
 		        	state=3;
@@ -175,6 +202,7 @@ public class GameView extends Activity implements Observer{
 		        String []message={localX+"",localY+"",mScrWidth+"",mScrHeight+"",state+""};
 		        mChatApplication.newLocalUserMessage(message);
 		        if(justChanged){
+					lifeTime -= 5;
 		        	mChatApplication.newLocalUserMessage(message);
 		        }
 			}
@@ -188,25 +216,25 @@ public class GameView extends Activity implements Observer{
 				
 				//if ball goes off from local screen, reposition to opposite side of screen
 		        if (localX2 > mScrWidth){
-		        	localX2=0;
+		        	localX2=5;
 		        	ownership2= false;
 		        	justChanged=true;
 		        	state=4;
 		        }
 		        if (localY2 > mScrHeight){
-		        	localY2=0;
+		        	localY2=5;
 		        	ownership2= false;
 		        	justChanged=true;
 		        	state=4;
 		        }
 		        if (localX2 < 0){
-		        	localX2=mRemoteScrWidth;
+		        	localX2=mRemoteScrWidth-40;
 		        	ownership2= false;
 		        	justChanged=true;
 		        	state=4;
 		        }
 		        if (localY2 < 0){
-		        	localY2=mRemoteScrHeight;
+		        	localY2=mRemoteScrHeight-40;
 		        	ownership2= false;
 		        	justChanged=true;
 		        	state=4;
@@ -229,7 +257,7 @@ class GameView2 extends SurfaceView implements Runnable{
 	
 	Thread thread = null;
 	SurfaceHolder sHolder;
-	boolean isItOkay = false;
+	boolean isRunning = false;
 
 	public GameView2(Context context) {
 		super(context);
@@ -240,6 +268,18 @@ class GameView2 extends SurfaceView implements Runnable{
 	@Override
 	public void run() {
 		
+		
+		
+		//loading bitmaps
+		Bitmap wall = BitmapFactory.decodeResource(getResources(), R.drawable.wall);
+		wall=Bitmap.createBitmap(wall, 10, 10, 60, 60);
+
+		Bitmap tile = BitmapFactory.decodeResource(getResources(), R.drawable.tile);
+		tile=Bitmap.createBitmap(tile, 70, 70, 60, 60);
+		
+		Bitmap flag = BitmapFactory.decodeResource(getResources(), R.drawable.flag);
+		flag=Bitmap.createBitmap(flag);
+		
 		//creating the maze
 		
 		//no of cols and rows
@@ -249,9 +289,11 @@ class GameView2 extends SurfaceView implements Runnable{
 		int rows=(mScrHeight/cellH)+2;
 		
 		//matrix
-		Rect grid[][]=new Rect[rows][cols];
+		Bitmap bg[][]=new Bitmap[rows][cols];
+		Point gridPos[][]=new Point[rows][cols];
+
+
 		int type[][]=new int[rows][cols];
-		Paint pCell[][]=new Paint[rows][cols];
 		
 		//fill cell types of the grid
 		Random r=new Random();
@@ -260,37 +302,40 @@ class GameView2 extends SurfaceView implements Runnable{
 		for(int i=0;i<rows;i++){
 			int y=i*cellH;
 			for(int j=0;j<cols;j++){
-				type[i][j]=r.nextInt(20);
+				int x=j*cellW;
+				int k=r.nextInt(20);
 				Log.i(TAG,"Cell   "+i+"  "+j);
-				pCell[i][j]=new Paint();
-				if(type[i][j]<=8){
-					pCell[i][j].setColor(Color.YELLOW);
+				if(k<=8){
+					type[i][j]=0;
 				}else{
-					pCell[i][j].setColor(Color.BLACK);
+					type[i][j]=1;
 				}
 				
 				//set x and y of left corner
-				int x=j*cellW;
-				grid[i][j]=new Rect(x,y,x+cellW,y+cellH);
+				gridPos[i][j]=new Point();
+				gridPos[i][j].x=x;
+				gridPos[i][j].y=y;
 				
 				//set default ball position black
-				if((mScrWidth/2)-200< grid[i][j].left & (mScrWidth/2)+200 > grid[i][j].right){
-					if((mScrHeight/2)-200< grid[i][j].top & (mScrHeight/2)+200 > grid[i][j].bottom){
-						pCell[i][j].setColor(Color.BLACK);
+				if((mScrWidth/2)-100< gridPos[i][j].x & (mScrWidth/2)+100 > gridPos[i][j].x+cellH){
+					if((mScrHeight/2)-100< gridPos[i][j].y & (mScrHeight/2)+100 > gridPos[i][j].y+cellH){
+						type[i][j]=1;
 					}
 				}
-				if(i==0 | j==0 | i==rows-1 | j== cols-1){
-					pCell[i][j].setColor(Color.BLACK);
+				if(i==0 | j==0 | i==rows-1 | j== cols-1 | i==rows-2 | j== cols-2 | i==rows-3 | j== cols-3){
+					type[i][j]=1;
 				}
 				
 			}
 		}
 		
 		
+		
+		
 		//setting the goal
 		Rect goal=new Rect(r.nextInt(rows-3), r.nextInt(cols-3), r.nextInt(rows-3)+120, r.nextInt(rows-3)+120);
 		Paint pGoal=new Paint();
-		pGoal.setColor(Color.GREEN);
+		pGoal.setColor(Color.TRANSPARENT);
 		
 	
 		ShapeDrawable mDrawable = new ShapeDrawable(new OvalShape());
@@ -299,11 +344,16 @@ class GameView2 extends SurfaceView implements Runnable{
         mDrawable.setBounds(localX, localY, localX+50, localY+50);
         mRemoteDrawable.setBounds(localX2,localY2, localX2+40, localY2+40);
         
+        mDrawable.getPaint().setShadowLayer(5f, 10.0f, 10.0f, Color.GRAY);
+        mRemoteDrawable.getPaint().setShadowLayer(5f, 10.0f, 10.0f, Color.GRAY);
+        
         int lastBlackCell[]=new int[2];
         int lastBlackCell2[]=new int[2];
-        boolean won=false;
+        boolean won = false;
+        boolean lost  =false;
+        int ballWidth=35;
 
-		while(isItOkay==true){
+		while(isRunning==true){
 			
 			
 			while(!sHolder.getSurface().isValid()){
@@ -320,11 +370,14 @@ class GameView2 extends SurfaceView implements Runnable{
 			synchronized (canvas) {
 				//update current x and y
 				sendMessage();
-				
+				if(lifeTime<=0)
+				{
+					lost=true;
+				}
 				
 				boolean blocked=false;
 				
-			
+				//if player got control for his ball
 				if(ownership1){
 					
 					mDrawable.getPaint().setColor(Color.RED);
@@ -332,75 +385,69 @@ class GameView2 extends SurfaceView implements Runnable{
 					
 					int currentCellX=(localX/cellW);
 					int currentCellY=(localY/cellH);
-					int currentCellX2=((localX+50)/cellW);
-					int currentCellY2=((localY+50)/cellH);
+					int currentCellX2=((localX+ballWidth)/cellW);
+					int currentCellY2=((localY+ballWidth)/cellH);
 				
 					
-					
-					//Log.i(TAG, "####CCCC"+pCell[currentCellY][currentCellX].getColor()+"  "+currentCellX2+"  "+currentCellY2);	
-					
-					
-					if(localX+50>=goal.left & localX<=goal.right & localY+50>=goal.top & localY <= goal.bottom){
-						won=true;						
+					if(localX+ballWidth>=goal.left & localX<=goal.right & localY+ballWidth>=goal.top & localY <= goal.bottom){
+						won=true;
+						score+=100;
 					}else{
-						
-					
-					
-					
-						if((pCell[currentCellY][currentCellX].getColor()==Color.BLACK) &
-								(pCell[currentCellY2][currentCellX2].getColor()==Color.BLACK) &
-								(pCell[currentCellY][currentCellX2].getColor()==Color.BLACK) &
-								(pCell[currentCellY2][currentCellX].getColor()==Color.BLACK) 
+						//check for current position
+						if((type[currentCellY][currentCellX]==1) &
+								(type[currentCellY2][currentCellX2]==1) &
+								(type[currentCellY][currentCellX2]==1) &
+								(type[currentCellY2][currentCellX]==1) 
 								){
+							//if in a tile let it move
 							lastBlackCell[0]=localX;
 							lastBlackCell[1]=localY;
-							mDrawable.setBounds(localX, localY, localX+50, localY+50);
-							Log.i(TAG, "In a black cell");
+							mDrawable.setBounds(localX-2, localY-2, (localX-2)+ballWidth, (localY-2)+ballWidth);
 						}else{
 							localX=lastBlackCell[0];
 							localY=lastBlackCell[1];
-							Log.i(TAG, "In a yellow cell");
 						}
 						
 					
 					
 					}	
-					
-					//mDrawable.setBounds(currentCellX*60, currentCellY*60, (currentCellX*60)+50, (currentCellY*60)+50);
-					Log.i(TAG, gm2+"STATE 1 - BIG RED");
+
+				}else{
+					mDrawable.getPaint().setColor(Color.TRANSPARENT);
 				}
 				
 				if(ownership2){
 					
-					if(localX+50>=goal.left & localX<=goal.right & localY+50>=goal.top & localY <= goal.bottom){
+					mRemoteDrawable.getPaint().setColor(Color.BLUE);
+					
+					if(localX+ballWidth>=goal.left & localX<=goal.right & localY+ballWidth>=goal.top & localY <= goal.bottom){
 						won=true;						
 					}else{
 						
 
 						int currentCellX=(localX2/cellW);
 						int currentCellY=(localY2/cellH);
-						int currentCellX2=((localX2+40)/cellW);
-						int currentCellY2=((localY2+40)/cellH);
+						int currentCellX2=((localX2+ballWidth)/cellW);
+						int currentCellY2=((localY2+ballWidth)/cellH);
 						
-						if((pCell[currentCellY][currentCellX].getColor()==Color.BLACK) &
-								(pCell[currentCellY2][currentCellX2].getColor()==Color.BLACK) &
-								(pCell[currentCellY][currentCellX2].getColor()==Color.BLACK) &
-								(pCell[currentCellY2][currentCellX].getColor()==Color.BLACK) 
+						if((type[currentCellY][currentCellX]==1) &
+								(type[currentCellY2][currentCellX2]==1) &
+								(type[currentCellY][currentCellX2]==1) &
+								(type[currentCellY2][currentCellX]==1) 
 								){
 							lastBlackCell2[0]=localX2;
 							lastBlackCell2[1]=localY2;
-							mRemoteDrawable.setBounds(localX2, localY2, localX2+50, localY2+50);
+							mRemoteDrawable.setBounds(localX2-2, localY2-2,( localX2-2)+ballWidth, (localY2-2)+ballWidth);
 							
 						}else{
 							localX2=lastBlackCell2[0];
 							localY2=lastBlackCell2[1];
 							
 						}
-					
-					//mRemoteDrawable.getPaint().setColor(Color.BLUE);
-					//mRemoteDrawable.setBounds(localX2,localY2, localX2+40, localY2+40);
-					Log.i(TAG, "STATE 2 - SMALL BLUE");
+
 				}
+				}else{
+					mRemoteDrawable.getPaint().setColor(Color.TRANSPARENT);
 				}
 				
 	            
@@ -410,11 +457,9 @@ class GameView2 extends SurfaceView implements Runnable{
 		//draw black blocks
 		for(int i=0;i<rows;i++){//8
 			for(int j=0;j<cols;j++){//5
-				if(pCell[i][j].getColor()==Color.BLACK){
-					canvas.drawRect(grid[i][j], pCell[i][j]);
+				if(type[i][j]==1){
+					canvas.drawBitmap(tile, gridPos[i][j].x,gridPos[i][j].y, null);
 				}
-				
-				//Log.i(TAG, "INFO "+i+"  "+j+"  "+pCell[i][j].getColor());
 			}
 		}
 		
@@ -422,31 +467,57 @@ class GameView2 extends SurfaceView implements Runnable{
 		 mRemoteDrawable.draw(canvas);
 		 mDrawable.draw(canvas);
 
+		 Paint pWall=new Paint();
+		 pWall.setShadowLayer(5f, 5f, 5f, Color.GRAY);
+	        
         //draw yellow blocks
         for(int i=0;i<rows;i++){//8
     			for(int j=0;j<cols;j++){//5
-    				if(pCell[i][j].getColor()==Color.YELLOW){
-    					canvas.drawRect(grid[i][j], pCell[i][j]);
+    				if(type[i][j]==0){
+    					canvas.drawBitmap(wall, gridPos[i][j].x,gridPos[i][j].y, pWall);
     				}
     				
-    				//Log.i(TAG, "INFO "+i+"  "+j+"  "+pCell[i][j].getColor());
     			}
     	} 
         
-        canvas.drawRect(goal, pGoal);	
-      //if it's a black one color it
-	/*	if(pCell[currentCellX][currentCellY].getColor()==Color.BLACK){
-			pCell[currentCellX][currentCellY].setColor(Color.MAGENTA);
-			canvas.drawRect(grid[currentCellX][currentCellY], pCell[currentCellX][currentCellY]);
-		}*/
+        //canvas.drawRect(goal, pGoal);
+        canvas.drawBitmap(flag, 0,0, new Paint());
+        Paint p=new Paint();
+		p.setColor(Color.MAGENTA);
+		p.setTextSize(40);
+		p.setTextAlign(Align.RIGHT);
+		canvas.drawText("Score : "+score, mScrWidth-40, mScrHeight-40, p);
+        canvas.drawText("Life Time : "+lifeTime+"%", mScrWidth-10, mScrHeight-10, p);
+
+        
+        if(lost){
+        	String []message={localX+"",localY+"",mScrWidth+"",mScrHeight+"",6+""};//lost message
+		    mChatApplication.newLocalUserMessage(message);
+        	
+        	writeData("win", 0);
+			startActivity(scoreIntent);
+			finish();
+			
+			
+        }
+        
+        
         if(won){
-			Paint p=new Paint();
-			p.setColor(Color.MAGENTA);
-			p.setTextSize(60);
-			canvas.drawText("YOU WON!!!", 40, 40, p);
-			Log.i(TAG, "####CCCC");	
+        	p.setTextAlign(Align.CENTER);
+        	p.setTextSize(60);
+
+			
+			String []message={localX+"",localY+"",mScrWidth+"",mScrHeight+"",5+""};//won message
+		    mChatApplication.newLocalUserMessage(message);
+		    writeData("win",1);
+		    writeData("Score",score);
+		    
+		    isRunning=false;
+			startActivity(scoreIntent);
+			finish();
 			
 		}
+        
 		sHolder.unlockCanvasAndPost(canvas);
 			
 			
@@ -455,7 +526,7 @@ class GameView2 extends SurfaceView implements Runnable{
 	}
 
 	public void pause(){
-		isItOkay=false;
+		isRunning=false;
 		while(true){
 			try {
 				thread.join();
@@ -470,14 +541,14 @@ class GameView2 extends SurfaceView implements Runnable{
 	
 
 	public void resume(){
-		isItOkay=true;
+		isRunning=true;
 		thread = new Thread(this);        
 		thread.start();
 	}
 
 
 	private void close(){
-		isItOkay=false;
+		isRunning=false;
 		
 	}
 	
@@ -498,6 +569,14 @@ protected void onPause() {
 	gm2.pause();
 }
 
+@Override
+protected void onStop() {
+	super.onStop();
+	
+	
+}
+
+
 //listener for menu item clicked
 @Override
 public boolean onOptionsItemSelected(MenuItem item) 
@@ -517,10 +596,10 @@ public synchronized void update(Observable o, Object arg) {
         Message message = mHandler.obtainMessage(HANDLE_HISTORY_CHANGED_EVENT);
         mHandler.sendMessage(message);
     }
-  /*  if (qualifier.equals(ChatApplication.GAME_STARTED_EVENT)) {
-        Message message = mHandler.obtainMessage(HANDLE_GAME_STARTED_EVENT);
+   if (qualifier.equals(ChatApplication.APPLICATION_QUIT_EVENT)) {
+        Message message = mHandler.obtainMessage(HANDLE_APPLICATION_QUIT_EVENT);
         mHandler.sendMessage(message);
-    }*/
+    }
 }
 
 private void updateHistory() {
@@ -558,6 +637,7 @@ private void readMessage(){
 			
 			if(state==3){
 				ownership2=true;
+				score+=20;
 				localX2=currentX;
 				localY2=currentY;
 				
@@ -568,7 +648,20 @@ private void readMessage(){
 				localX=currentX;
 				localY=currentY;
 				
-		        }
+	        }
+			if(state==5){
+				writeData("win", 0);
+				startActivity(scoreIntent);
+				finish();
+				
+	        }
+			if(state==6){
+				writeData("win", 1);
+				startActivity(scoreIntent);
+				finish();
+				
+	        }
+			
 		}
 			
 			
@@ -579,7 +672,7 @@ private void readMessage(){
 	
 	
 }
-
+private static final int HANDLE_APPLICATION_QUIT_EVENT = 0;
 private Handler mHandler = new Handler() {
 
 	
@@ -591,10 +684,10 @@ private Handler mHandler = new Handler() {
                 updateHistory();
                 break;
             }
-        case HANDLE_GAME_STARTED_EVENT:
+        case HANDLE_APPLICATION_QUIT_EVENT:
         {
-            //updateHistory();
-        	//gameInit()
+         
+        	finish();
             break;
         }
         default:
@@ -603,84 +696,23 @@ private Handler mHandler = new Handler() {
     }
 };
 
+
+
+void writeData(String key, int value){
+
+	if(key=="Score"){
+	sharedPref = this.getSharedPreferences("myScore", Context.MODE_PRIVATE); //0 is the default value
+	Editor editor = sharedPref.edit();
+	editor.putInt(key, sharedPref.getInt(key, 0)+value);
+	editor.commit();
+	}else if (key=="win"){
+		sharedPref = this.getSharedPreferences("myState", Context.MODE_PRIVATE); //0 is the default value
+		Editor editor = sharedPref.edit();
+		editor.putInt(key, value);
+		editor.commit();
+	}else{
+		
+	}
 }
 
-
-
-
-/*
- * 					for(int i=0;i<rows;i++){
-						for(int j=0;j<cols;j++){
-							
-							if(pCell[i][j].getColor()==Color.BLACK){
-								if(localX<=grid[i][j].left || localX+50>=grid[i][j].right || localY<=grid[i][j].top || localY+50 >= grid[i][j].bottom){
-									
-								}
-							}
-							
-						}
-					}
-					
-				////////////////////////////////////////////////////////////////	
-					
-				
-				currentCellX=(localX/cellW);
-				currentCellY=(localY/cellH);
-					
-					if(pCell[currentCellX][currentCellY].getColor()==Color.BLACK){
-						lastBlackCell[0]=localX;
-						lastBlackCell[1]=localY;
-						mDrawable.setBounds(localX, localY, localX+50, localY+50);
-						
-					}else{
-						localX=lastBlackCell[0];
-						localY=lastBlackCell[1];
-					}
-					
-					
-					
-			////////////////////////////////////////////////		
-					
-					for(int i=0;i<rows;i++){
-						for(int j=0;j<cols;j++){
-							
-							if(pCell[i][j].getColor()==Color.YELLOW){
-								if(localX+50>=grid[i][j].left || localX<=grid[i][j].right || localY+50>=grid[i][j].top || localY <= grid[i][j].bottom){
-									localX=lastBlackCell[0];
-									localY=lastBlackCell[1];
-									mDrawable.setBounds(localX, localY, localX+50, localY+50);
-									blocked=true;
-									break;
-								}
-							}
-							
-						}
-					}
-
-					if(!blocked){
-						lastBlackCell[0]=localX;
-						lastBlackCell[1]=localY;
-						mDrawable.setBounds(localX, localY, localX+50, localY+50);
-					}
-					
-					
-					
-					
-					
-					
-					
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
